@@ -1,0 +1,30 @@
+{
+  "name": "lumiere-shop",
+  "version": "1.0.0",
+  "description": "Backend for Lumiere webshop",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "bin": "server.js",
+  "pkg": {
+    "assets": [
+      "**/*.html",
+      "uploads/**/*"
+    ]
+  },
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "express": "^4.19.2",
+    "dotenv": "^16.4.5",
+    "express-session": "^1.18.0",
+    "@mollie/api-client": "^3.7.0",
+    "multer": "^1.4.5-lts.1",
+    "nodemailer": "^6.9.13",
+    "session-file-store": "^1.5.0",
+    "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "pkg": "^5.8.1"
+  }
+}

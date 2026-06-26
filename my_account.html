@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LUMIÈRE | Mijn Account</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;600&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #050505; color: #fff; }
+        .font-cinzel { font-family: 'Cinzel', serif; }
+        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .status-pending { color: #facc15; } /* yellow-400 */
+        .status-succeeded, .status-paid { color: #4ade80; } /* green-400 */
+        .status-failed, .status-canceled, .status-expired { color: #f87171; } /* red-400 */
+    </style>
+</head>
+<body class="p-10">
+    <div class="max-w-7xl mx-auto">
+        <div class="flex justify-between items-center mb-12">
+            <h1 class="font-cinzel text-4xl">Mijn Account</h1>
+            <div>
+                <a href="/" class="text-sm uppercase tracking-widest hover:text-blue-400 transition">Terug naar shop</a>
+                <button onclick="logoutUser()" class="ml-6 text-sm uppercase tracking-widest text-red-500 hover:text-red-400 transition">Uitloggen</button>
+            </div>
+        </div>
+
+        <!-- Account Details -->
+        <div class="glass p-8 rounded-lg mb-12">
+            <h2 class="font-cinzel text-2xl mb-4">Mijn Gegevens</h2>
+            <div id="user-details" class="space-y-2 text-gray-300">
+                <!-- Gebruikersgegevens worden hier ingevoegd -->
+            </div>
+        </div>
+
+        <!-- Account Management -->
+        <div class="glass p-8 rounded-lg mb-12">
+            <h2 class="font-cinzel text-2xl mb-6">Account Beheren</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+                <!-- Change Name -->
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Naam wijzigen</h3>
+                    <form id="change-name-form" class="space-y-4">
+                        <input type="text" id="new-name" placeholder="Nieuwe naam" required class="w-full p-3 bg-white/5 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <button type="submit" class="py-2 px-6 bg-blue-600 rounded hover:bg-blue-500 transition">Opslaan</button>
+                    </form>
+                </div>
+                <!-- Change Password -->
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Wachtwoord wijzigen</h3>
+                    <form id="change-password-form" class="space-y-4">
+                        <input type="password" id="current-password" placeholder="Huidig wachtwoord" required class="w-full p-3 bg-white/5 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <input type="password" id="new-password" placeholder="Nieuw wachtwoord" required class="w-full p-3 bg-white/5 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <input type="password" id="confirm-new-password" placeholder="Bevestig nieuw wachtwoord" required class="w-full p-3 bg-white/5 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <button type="submit" class="py-2 px-6 bg-blue-600 rounded hover:bg-blue-500 transition">Wachtwoord bijwerken</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Wishlist -->
+        <div>
+            <h2 class="font-cinzel text-2xl mb-4">Mijn Wishlist</h2>
+            <div id="wishlist-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <!-- Wishlist items worden hier ingevoegd -->
+            </div>
+        </div>
+
+        <!-- Order History -->
+        <div class="mt-16">
+            <h2 class="font-cinzel text-2xl mb-4">Bestelgeschiedenis</h2>
+            <div class="bg-black/30 rounded-lg shadow-lg overflow-hidden">
+                <table class="w-full text-left">
+                    <thead class="bg-white/5">
+                        <tr>
+                            <th class="p-4 uppercase text-sm tracking-wider">Product</th>
+                            <th class="p-4 uppercase text-sm tracking-wider">Bedrag</th>
+                            <th class="p-4 uppercase text-sm tracking-wider">Status</th>
+                            <th class="p-4 uppercase text-sm tracking-wider">Datum</th>
+                        </tr>
+                    </thead>
+                    <tbody id="orders-table-body">
+                        <!-- Bestellingen worden hier dynamisch ingevoegd -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const user = JSON.parse(localStorage.getItem('lumiere_user'));
+            if (user) {
+                const userDetails = document.getElementById('user-details');
+                userDetails.innerHTML = `
+                    <p><strong>Naam:</strong> ${user.name}</p>
+                    <p><strong>E-mail:</strong> ${user.email}</p>
+                    <p><strong>Status:</strong> <span class="font-bold uppercase">${user.status}</span></p>
+                `;
+            }
+
+            // Fetch en toon wishlist
+            Promise.all([
+                fetch('/api/products').then(res => res.json()),
+                fetch('/api/wishlist').then(res => res.json())
+            ]).then(([products, wishlistIds]) => {
+                const wishlistGrid = document.getElementById('wishlist-grid');
+                const wishlistProducts = products.filter(p => wishlistIds.includes(p.id));
+
+                if (wishlistProducts.length === 0) {
+                    wishlistGrid.innerHTML = '<p class="col-span-full text-center text-gray-500">Je hebt nog geen favorieten toegevoegd.</p>';
+                    return;
+                }
+
+                wishlistGrid.innerHTML = wishlistProducts.map(product => `
+                    <div class="glass rounded-lg p-4 text-center">
+                        ${product.image_url ? `<img src="${product.image_url}" alt="${product.name}" class="w-full h-40 object-cover rounded-md mb-4">` : ''}
+                        <h3 class="font-semibold">${product.name}</h3>
+                        <p class="text-sm text-gray-400">€${(product.price / 100).toFixed(2)}</p>
+                        <a href="/" class="mt-4 inline-block text-xs text-blue-400 hover:underline">Bekijk product</a>
+                    </div>
+                `).join('');
+            });
+
+            fetch('/api/my-orders')
+                .then(res => res.json())
+                .then(orders => {
+                    const tbody = document.getElementById('orders-table-body');
+                    if (orders.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-gray-500">Je hebt nog geen bestellingen geplaatst.</td></tr>';
+                        return;
+                    }
+                    tbody.innerHTML = orders.map(order => `
+                        <tr class="border-b border-white/10">
+                            <td class="p-4">${order.product_name}</td>
+                            <td class="p-4">€${(order.amount / 100).toFixed(2)}</td>
+                            <td class="p-4 font-bold status-${order.status}">${order.status}</td>
+                            <td class="p-4 text-gray-400">${new Date(parseInt(order.id.split('-')[1])).toLocaleDateString('nl-BE')}</td>
+                        </tr>
+                    `).join('');
+                });
+            
+            // Event listeners voor de nieuwe formulieren
+            document.getElementById('change-name-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const newName = document.getElementById('new-name').value;
+                const response = await fetch('/api/user/update-name', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: newName })
+                });
+                const data = await response.json();
+                alert(data.message || data.error);
+                if (response.ok) {
+                    // Update de naam in localStorage en herlaad de pagina
+                    localStorage.setItem('lumiere_user', JSON.stringify(data.user));
+                    window.location.reload();
+                }
+            });
+
+            document.getElementById('change-password-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const currentPassword = document.getElementById('current-password').value;
+                const newPassword = document.getElementById('new-password').value;
+                const confirmNewPassword = document.getElementById('confirm-new-password').value;
+
+                if (newPassword !== confirmNewPassword) {
+                    alert('De nieuwe wachtwoorden komen niet overeen.');
+                    return;
+                }
+
+                const response = await fetch('/api/user/update-password', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ currentPassword, newPassword })
+                });
+
+                const data = await response.json();
+                alert(data.message || data.error);
+
+                if (response.ok) {
+                    // Maak het formulier leeg na succes
+                    e.target.reset();
+                }
+            });
+        });
+
+        async function logoutUser() {
+            localStorage.removeItem('lumiere_user');
+            await fetch('/api/logout', { method: 'POST' });
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>

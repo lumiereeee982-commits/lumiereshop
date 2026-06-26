@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LUMIÈRE | L'Élite Collection</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;600&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #050505; color: #fff; }
+        .font-cinzel { font-family: 'Cinzel', serif; }
+        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.1); }
+    </style>
+</head>
+<body class="p-10 bg-yellow-950/20">
+    <div class="max-w-7xl mx-auto">
+        <div class="flex justify-between items-center mb-12">
+            <h1 class="font-cinzel text-4xl text-yellow-500">L'Élite Collection</h1>
+            <a href="/" class="text-sm uppercase tracking-widest hover:text-yellow-300 transition">Terug naar shop</a>
+        </div>
+        <p class="text-center text-yellow-300 mb-12">Welkom, Elite lid. Dit is de meest exclusieve collectie.</p>
+
+        <!-- Producten worden hier dynamisch geladen -->
+        <div id="product-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"></div>
+    </div>
+
+    <!-- Purchase Modal (vereist voor startPurchase) -->
+    <div id="purchase-modal" class="hidden fixed inset-0 bg-black/95 z-[60] flex items-center justify-center">
+        <div class="glass p-12 w-96 rounded-3xl text-center border border-yellow-700/50">
+            <h2 class="font-cinzel text-2xl mb-4">Voltooi je aankoop</h2>
+            <p id="purchase-item-name" class="mb-6 text-gray-300"></p>
+            <input type="email" id="purchase-email" placeholder="E-mailadres voor bevestiging" class="w-full p-4 mb-6 bg-white/5 border border-white/10 rounded-xl focus:outline-none">
+            <button id="purchase-confirm-btn" class="w-full py-4 bg-yellow-600 text-black font-bold uppercase">Bevestig en Betaal</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const response = await fetch('/api/products');
+            const products = await response.json();
+            const grid = document.getElementById('product-grid');
+            
+            const eliteProducts = products.filter(p => p.category === 'elite');
+
+            if (eliteProducts.length === 0) {
+                grid.innerHTML = `<p class="col-span-full text-center text-yellow-400">Er zijn momenteel geen producten in deze collectie.</p>`;
+                return;
+            }
+
+            eliteProducts.forEach(product => {
+                const productEl = document.createElement('div');
+                productEl.className = 'glass p-8 rounded-2xl border border-yellow-800/50';
+                productEl.innerHTML = `
+                    <h4 class="font-cinzel text-2xl mb-2 text-yellow-500">${product.name}</h4>
+                    <p class="text-sm text-yellow-200/70 mb-4 h-20">${product.description || ''}</p>
+                    <button onclick="startPurchase('${product.name}', ${product.price})" class="w-full py-4 bg-yellow-600 hover:bg-yellow-500 text-black font-bold uppercase tracking-widest transition">
+                        Buy Now (€${(product.price / 100)})
+                    </button>
+                `;
+                grid.appendChild(productEl);
+            });
+        });
+
+        // --- Vereiste functies voor de aankoopknop ---
+        let currentPurchase = { name: null, amount: null };
+        function toggleModal(id) { document.getElementById(id).classList.toggle('hidden'); }
+
+        function startPurchase(itemName, amount) {
+            currentPurchase = { name: itemName, amount: amount };
+            document.getElementById('purchase-item-name').innerText = `Product: ${itemName} - €${amount / 100}`;
+            const user = JSON.parse(localStorage.getItem('lumiere_user'));
+            if (user && user.email) document.getElementById('purchase-email').value = user.email;
+            document.getElementById('purchase-confirm-btn').onclick = processPayment;
+            toggleModal('purchase-modal');
+        }
+
+        async function processPayment() {
+            const userEmail = document.getElementById('purchase-email').value;
+            if (!userEmail) { alert('E-mail is verplicht voor de bevestiging.'); return; }
+            toggleModal('purchase-modal');
+            const response = await fetch('/api/create-payment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ amount: currentPurchase.amount, userEmail: userEmail, productName: currentPurchase.name })
+            });
+            const data = await response.json();
+            if (response.ok) window.location.href = data.checkoutUrl;
+            else alert(`Fout: ${data.error}`);
+        }
+    </script>
+</body>
+</html>

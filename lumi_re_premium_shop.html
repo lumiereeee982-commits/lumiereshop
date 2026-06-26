@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LUMIÈRE | Official Premium</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;600&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #050505; color: #fff; }
+        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .font-cinzel { font-family: 'Cinzel', serif; }
+        .fade-in { animation: fadeIn 0.8s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        canvas { display: block; width: 100%; height: 100%; }
+
+        /* Laadscherm Stijlen */
+        #loading-overlay {
+            position: fixed;
+            inset: 0;
+            background-color: #050505;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.5s ease-out;
+        }
+        .loader {
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            border-left-color: #fff;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+        .skeleton {
+            background-color: rgba(255, 255, 255, 0.05);
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+    </style>
+</head>
+<body class="overflow-x-hidden">
+
+    <!-- Laadscherm -->
+    <div id="loading-overlay">
+        <div class="loader"></div>
+    </div>
+
+    <nav class="fixed w-full z-50 p-6 flex justify-between items-center glass">
+        <h1 class="font-cinzel text-2xl tracking-widest text-white">LUMIÈRE</h1>
+        <div class="space-x-8 flex items-center">
+            <div class="relative">
+                <input type="search" id="search-input" placeholder="Zoeken..." class="bg-white/5 border border-white/10 rounded-full py-2 px-4 pl-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition w-56 placeholder-gray-400">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            </div>
+            <a href="/members" id="nav-member-link" class="hidden text-sm uppercase tracking-widest hover:text-blue-400 transition">Member Collectie</a>
+            <a href="/elite" id="nav-elite-link" class="hidden text-sm uppercase tracking-widest text-yellow-500">L'Élite</a>
+            <a href="/admin" id="nav-admin-link" class="hidden text-sm uppercase tracking-widest text-red-500">Admin</a>
+            <button id="account-btn" onclick="toggleModal('reg-modal')" class="text-sm uppercase tracking-widest hover:text-blue-400 transition">Account</button>
+        </div>
+    </nav>
+
+    <section class="h-screen flex flex-col items-center justify-center relative">
+        <div id="hero-3d" class="absolute inset-0 z-0 opacity-50"></div>
+        <div class="z-10 text-center fade-in">
+            <h2 class="font-cinzel text-7xl mb-6">THE ART OF L&U</h2>
+            <p class="text-gray-400 uppercase tracking-[0.3em] mb-8">Premium | Exclusive | Infinite</p>
+            <button onclick="document.getElementById('shop').scrollIntoView({behavior:'smooth'})" class="border border-white px-10 py-3 hover:bg-white hover:text-black transition uppercase text-sm tracking-widest">Collectie</button>
+        </div>
+    </section>
+
+    <section id="shop" class="max-w-7xl mx-auto p-10">
+        <h3 class="font-cinzel text-4xl mb-12 text-center">Ordinary Collection</h3>
+        <!-- Producten worden hier dynamisch geladen -->
+        <div id="product-grid" class="grid grid-cols-1 md:grid-cols-2 gap-12"></div>
+    </section>
+
+    <!-- Elite Membership Section -->
+    <section id="elite-membership" class="max-w-7xl mx-auto p-10 mt-10">
+        <div class="glass p-12 rounded-2xl text-center border border-yellow-700/50">
+            <h3 class="font-cinzel text-4xl mb-4 text-yellow-500">L'Élite Membership</h3>
+            <p class="text-gray-300 mb-6 max-w-xl mx-auto">Krijg permanente toegang tot de L'Élite collectie, exclusieve releases en prioriteitssupport. Een eenmalige aankoop voor een levenslange upgrade.</p>
+            <div class="font-cinzel text-3xl mb-8">€10</div>
+            <button onclick="startPurchase('Elite Membership', 1000)" class="py-4 px-12 bg-yellow-600 text-black font-bold uppercase tracking-widest hover:bg-yellow-500 transition">Word Elite</button>
+        </div>
+    </section>
+
+    <div id="desc-modal" class="hidden fixed inset-0 bg-black/95 z-[60] flex items-center justify-center p-6">
+        <div class="glass p-12 max-w-2xl rounded-3xl text-center">
+            <h2 class="font-cinzel text-3xl mb-6">Lumière Snake Runners: Apex Predator Elegance</h2>
+            <p class="text-gray-300 leading-relaxed mb-6">De Lumière Snake Runners zijn niet zomaar sneakers; ze zijn een manifestatie van de Lumière-filosofie. In deze editie smelten de rauwe, ongetemde spirit van de slang samen met de verfijnde, iconische silhouetten van de klassieke sport-luxe. Vervaardigd met een hypermoderne carbon-fibre finish, bieden deze runners een ongeëvenaarde visuele diepte. De jacht is geopend.</p>
+            <button onclick="toggleModal('desc-modal')" class="py-3 px-8 border border-white hover:bg-white hover:text-black transition">Sluiten</button>
+        </div>
+    </div>
+
+    <div id="reg-modal" class="hidden fixed inset-0 bg-black/95 z-[60] flex items-center justify-center">
+        <div class="glass p-12 w-96 rounded-3xl text-center">
+            <!-- Tabs -->
+            <div class="flex mb-8 border-b border-white/10">
+                <button id="tab-register" onclick="switchAuthTab('register')" class="flex-1 py-2 font-cinzel text-xl border-b-2 border-white">WORD LID</button>
+                <button id="tab-login" onclick="switchAuthTab('login')" class="flex-1 py-2 font-cinzel text-xl border-b-2 border-transparent text-gray-500">INLOGGEN</button>
+            </div>
+
+            <!-- Register Form -->
+            <div id="register-form">
+                <input type="text" id="reg-name" placeholder="Naam" class="w-full p-4 mb-4 bg-white/5 border border-white/10 rounded-xl focus:outline-none">
+                <input type="email" id="reg-email" placeholder="E-mailadres" class="w-full p-4 mb-4 bg-white/5 border border-white/10 rounded-xl focus:outline-none">
+                <input type="password" id="reg-password" placeholder="Wachtwoord" class="w-full p-4 mb-4 bg-white/5 border border-white/10 rounded-xl focus:outline-none">
+                <button onclick="registerUser()" class="w-full py-4 bg-white text-black font-bold uppercase">Registreren</button>
+            </div>
+
+            <!-- Login Form -->
+            <div id="login-form" class="hidden">
+                <input type="email" id="login-email" placeholder="E-mailadres" class="w-full p-4 mb-4 bg-white/5 border border-white/10 rounded-xl focus:outline-none">
+                <input type="password" id="login-password" placeholder="Wachtwoord" class="w-full p-4 mb-4 bg-white/5 border border-white/10 rounded-xl focus:outline-none">
+                <button onclick="loginUser()" class="w-full py-4 bg-white text-black font-bold uppercase">Inloggen</button>
+                <a href="#" onclick="showForgotPassword()" class="text-xs text-gray-400 mt-4 inline-block hover:text-white">Wachtwoord vergeten?</a>
+            </div>
+
+            <button onclick="toggleModal('reg-modal')" class="mt-4 text-gray-500">Sluiten</button>
+        </div>
+    </div>
+
+    <!-- Purchase Modal -->
+    <div id="purchase-modal" class="hidden fixed inset-0 bg-black/95 z-[60] flex items-center justify-center">
+        <div class="glass p-12 w-96 rounded-3xl text-center">
+            <h2 class="font-cinzel text-2xl mb-4">Voltooi je aankoop</h2>
+            <p id="purchase-item-name" class="mb-6 text-gray-300"></p>
+            <input type="email" id="purchase-email" placeholder="E-mailadres voor bevestiging" class="w-full p-4 mb-6 bg-white/5 border border-white/10 rounded-xl focus:outline-none">
+            <button id="purchase-confirm-btn" class="w-full py-4 bg-blue-600 text-white font-bold uppercase">Bevestig en Betaal</button>
+        </div>
+    </div>
+
+    <!-- Payment Status Modal -->
+    <div id="payment-status-modal" class="hidden fixed inset-0 bg-black/95 z-[60] flex items-center justify-center">
+        <!-- Deze modal wordt niet meer gebruikt voor de Mollie flow, maar kan blijven voor andere meldingen -->
+    </div>
+
+    <!-- Forgot Password Modal -->
+    <div id="forgot-password-modal" class="hidden fixed inset-0 bg-black/95 z-[60] flex items-center justify-center">
+        <div class="glass p-12 w-96 rounded-3xl text-center">
+            <h2 class="font-cinzel text-2xl mb-6">Wachtwoord Vergeten</h2>
+            <p class="text-gray-400 mb-6 text-sm">Voer uw e-mailadres in. Als het bij ons bekend is, sturen we u een herstellink.</p>
+            <input type="email" id="forgot-email" placeholder="E-mailadres" class="w-full p-4 mb-6 bg-white/5 border border-white/10 rounded-xl focus:outline-none">
+            <button onclick="requestPasswordReset()" class="w-full py-4 bg-blue-600 text-white font-bold uppercase">Verstuur Link</button>
+            <button onclick="toggleModal('forgot-password-modal')" class="mt-4 text-gray-500">Sluiten</button>
+        </div>
+    </div>
+
+    <script>
+        // --- Initialisatie Voltooid: Verberg Laadscherm ---
+        // We doen dit in een 'DOMContentLoaded' om zeker te zijn dat alles geladen is.
+        document.addEventListener('DOMContentLoaded', () => {
+            const loadingOverlay = document.getElementById('loading-overlay');
+            loadingOverlay.style.opacity = '0';
+            // Verwijder de overlay uit de DOM nadat de transitie is voltooid.
+            loadingOverlay.addEventListener('transitionend', () => loadingOverlay.remove());
+
+            // Initialiseer de 3D-animaties die altijd bestaan (zoals de hero)
+            initHeroAnimation();
+            // Laad de producten. De 3D-animaties voor producten worden binnen deze functie afgehandeld.
+            loadProducts();
+        });
+
+        let snakeAnim, chronoAnim; // Globale variabelen voor de productanimaties
+
+        function initHeroAnimation() {
+            const heroContainer = document.getElementById('hero-3d');
+            if (!heroContainer) return;
+
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, heroContainer.clientWidth / heroContainer.clientHeight, 0.1, 1000);
+            camera.position.z = 5;
+
+            const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            renderer.setSize(heroContainer.clientWidth, heroContainer.clientHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            heroContainer.appendChild(renderer.domElement);
+
+            // --- Glow Effect (Bloom) ---
+            const renderScene = new THREE.RenderPass(scene, camera);
+            const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+            bloomPass.threshold = 0;
+            bloomPass.strength = 1.2; // Sterkte van de gloed
+            bloomPass.radius = 0.5;
+            const composer = new THREE.EffectComposer(renderer);
+            composer.addPass(renderScene);
+            composer.addPass(bloomPass);
+
+            const geo = new THREE.TorusKnotGeometry(1, 0.3, 100, 16);
+            const mat = new THREE.MeshBasicMaterial({ color: 0x3b82f6, wireframe: true, transparent: true, opacity: 0.7 });
+            const mesh = new THREE.Mesh(geo, mat);
+            scene.add(mesh);
+
+            // --- Muis Interactie ---
+            const mouse = new THREE.Vector2();
+            window.addEventListener('mousemove', (event) => {
+                mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            });
+
+            let animationId;
+            function animate() {
+                // Vaste rotatie
+                mesh.rotation.x += 0.002;
+                mesh.rotation.y += 0.002;
+
+                // Rotatie op basis van muispositie
+                camera.position.x += (mouse.x * 2 - camera.position.x) * 0.05;
+                camera.position.y += (-mouse.y * 2 - camera.position.y) * 0.05;
+                camera.lookAt(scene.position);
+
+                composer.render(); // Gebruik de composer om te renderen
+                animationId = requestAnimationFrame(animate);
+            }
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => entry.isIntersecting ? animate() : cancelAnimationFrame(animationId));
+            }, { root: null, threshold: 0.01 });
+            observer.observe(heroContainer);
+
+            window.addEventListener('resize', () => {
+                camera.aspect = heroContainer.clientWidth / heroContainer.clientHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(heroContainer.clientWidth, heroContainer.clientHeight);
+                composer.setSize(heroContainer.clientWidth, heroContainer.clientHeight);
+            });
+        }
+
+        let allOrdinaryProducts = [];
+
+        function showSkeletonLoaders() {
+            const grid = document.getElementById('product-grid');
+            grid.innerHTML = ''; // Maak leeg
+            for (let i = 0; i < 2; i++) { // Toon 2 placeholders
+                const skeletonEl = document.createElement('div');
+                skeletonEl.className = 'glass p-8 rounded-2xl';
+                skeletonEl.innerHTML = `
+                    <div class="w-full h-80 rounded-xl mb-6 skeleton"></div>
+                    <div class="h-8 w-3/4 rounded mb-2 skeleton"></div>
+                    <div class="h-12 w-full rounded mb-4 skeleton"></div>
+                    <div class="h-12 w-full rounded skeleton"></div>
+                `;
+                grid.appendChild(skeletonEl);
+            }
+        }
+
+        async function loadProducts() {
+            showSkeletonLoaders();
+            const response = await fetch('/api/products');
+            const products = await response.json();
+            allOrdinaryProducts = products.filter(p => p.category === 'ordinary');
+            renderProducts(allOrdinaryProducts);
+        }
+
+        function renderProducts(productsToRender) {
+            const grid = document.getElementById('product-grid');
+            grid.innerHTML = ''; // Maak de grid leeg
+
+            if (productsToRender.length === 0) {
+                grid.innerHTML = `<p class="col-span-full text-center text-gray-500">Geen producten gevonden die overeenkomen met uw zoekopdracht.</p>`;
+                return;
+            }
+
+            // Haal de wishlist van de gebruiker op (als ingelogd)
+            let userWishlist = [];
+            const user = JSON.parse(localStorage.getItem('lumiere_user'));
+            if (user) {
+                fetch('/api/wishlist').then(res => res.json()).then(wishlist => {
+                    userWishlist = wishlist;
+                    // Her-render de knoppen met de juiste status
+                    productsToRender.forEach(p => updateWishlistButton(p.id, userWishlist.includes(p.id)));
+                });
+            }
+
+            // Functie om een morph-animatie te maken (indien nog niet gemaakt)
+            function setupMorphAnimation(animVar, containerId, color, shapes) {
+                if (animVar) return animVar; // Bestaat al, doe niets
+
+                const container = document.getElementById(containerId);
+                if (!container) return null;
+
+                // ... (volledige createMorphAnimation logica hier) ...
+                // Dit is een vereenvoudiging. We gaan ervan uit dat de animaties al bestaan.
+                // De correcte aanpak is om de animatie-objecten te hergebruiken.
+                return null; // Placeholder
+            }
+
+            // Maak de animatie-objecten EENMALIG aan
+            if (!snakeAnim) {
+                const segments = 64;
+                const snakeRunnerShapes = [ new THREE.TorusKnotGeometry(1, 0.1, segments, 16), new THREE.TorusGeometry(1.2, 0.1, segments, segments), new THREE.SphereGeometry(0.8, segments, segments) ];
+                // We kunnen de animatie hier niet volledig maken, omdat de container nog niet bestaat.
+                // We slaan de configuratie op.
+                snakeAnim = { config: { color: 0x1e3a8a, shapes: snakeRunnerShapes } };
+            }
+            if (!chronoAnim) {
+                const segments = 64;
+                const chronoShapes = [ new THREE.TorusKnotGeometry(1, 0.1, segments, 16), new THREE.BoxGeometry(1.5, 1.5, 0.2, segments, segments, segments) ];
+                chronoAnim = { config: { color: 0xcccccc, shapes: chronoShapes } };
+            }
+
+            productsToRender.forEach(product => {
+                const productEl = document.createElement('div');
+                productEl.className = 'glass p-8 rounded-2xl fade-in';
+
+                let animationHtml = '';
+                if (product.animation_type === 'snake') {
+                    animationHtml = `<div id="snake-3d-container" class="w-full h-80 rounded-xl mb-6 shadow-2xl border border-blue-900/50 bg-black overflow-hidden"></div>`;
+                } else if (product.animation_type === 'chrono') {
+                    animationHtml = `<div id="chrono-3d-container" class="w-full h-80 rounded-xl mb-6 shadow-2xl border border-blue-900/50 bg-black overflow-hidden"></div>`;
+                } else if (product.image_url) {
+                    animationHtml = `<img src="${product.image_url}" alt="${product.name}" class="w-full h-80 object-cover rounded-xl mb-6 shadow-2xl border border-gray-700/50">`;
+                } else {
+                    // Fallback voor als er geen media is
+                    animationHtml = `<div class="w-full h-80 rounded-xl mb-6 bg-black/20 flex items-center justify-center"><p class="text-gray-500">Geen afbeelding</p></div>`;
+                }
+
+                productEl.innerHTML = `
+                    ${animationHtml}
+                    <h4 class="font-cinzel text-2xl mb-2">${product.name}</h4>
+                    <p class="text-sm text-gray-400 mb-4 italic">${product.description || ''}</p>
+                    <button onclick="startPurchase('${product.name}', ${product.price})" class="w-full py-4 bg-blue-900 hover:bg-blue-800 text-white font-bold uppercase tracking-widest transition">
+                        Buy Now (€${(product.price / 100)})
+                    </button>
+                `;
+                grid.appendChild(productEl);
+            });
+
+            // Koppel de animaties aan de (mogelijk) nieuwe DOM-elementen
+            attachProductAnimations();
+        }
+
+        function updateWishlistButton(productId, isFavorited) {
+            const btn = document.getElementById(`wishlist-btn-${productId}`);
+            if (!btn) return;
+            btn.classList.toggle('text-red-500', isFavorited);
+            btn.classList.toggle('text-white', !isFavorited);
+            btn.querySelector('svg').setAttribute('fill', isFavorited ? 'currentColor' : 'none');
+        }
+
+        async function toggleWishlist(productId) {
+            const btn = document.getElementById(`wishlist-btn-${productId}`);
+            if (!btn) return;
+
+            const isFavorited = btn.classList.contains('text-red-500');
+            const method = isFavorited ? 'DELETE' : 'POST';
+            const url = isFavorited ? `/api/wishlist/${productId}` : '/api/wishlist';
+
+            const response = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: method === 'POST' ? JSON.stringify({ productId }) : null
+            });
+
+            if (response.ok) {
+                updateWishlistButton(productId, !isFavorited);
+            }
+        }
+
+        function attachProductAnimations() {
+            function createMorphInstance(containerId, config) {
+                const container = document.getElementById(containerId);
+                if (!container || container.querySelector('canvas')) return null; // Al een canvas, doe niets
+
+                const scene = new THREE.Scene();
+                const camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 1000);
+                camera.position.z = 4;
+
+                const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+                renderer.setSize(container.clientWidth, container.clientHeight);
+                renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                container.appendChild(renderer.domElement);
+
+                const light = new THREE.PointLight(0xffffff, 1.5);
+                light.position.set(5, 5, 5);
+                scene.add(light);
+                scene.add(new THREE.AmbientLight(config.color, 0.5));
+
+                const geometry = config.shapes[0].clone();
+                geometry.morphAttributes.position = [];
+                for (let i = 1; i < config.shapes.length; i++) {
+                    geometry.morphAttributes.position.push(config.shapes[i].attributes.position);
+                }
+
+                const material = new THREE.MeshStandardMaterial({ color: config.color, metalness: 0.8, roughness: 0.2, morphTargets: true });
+                const mesh = new THREE.Mesh(geometry, material);
+                scene.add(mesh);
+
+                const timeline = gsap.timeline({ repeat: -1, yoyo: true, paused: true, defaults: { duration: 2, ease: "power2.inOut" } });
+                for (let i = 0; i < config.shapes.length - 1; i++) {
+                    timeline.to(mesh.morphTargetInfluences, { [i]: 1 }, `+=${i > 0 ? 1 : 0}`);
+                    if (i < config.shapes.length - 2) {
+                        timeline.to(mesh.morphTargetInfluences, { [i]: 0 }, "+=1");
+                    }
+                }
+
+                let animationId;
+                function animate() {
+                    mesh.rotation.y += 0.005;
+                    renderer.render(scene, camera);
+                    animationId = requestAnimationFrame(animate);
+                }
+
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            animate();
+                            timeline.restart();
+                        } else {
+                            cancelAnimationFrame(animationId);
+                            timeline.pause();
+                        }
+                    });
+                }, { root: null, threshold: 0.01 });
+                observer.observe(container);
+
+                window.addEventListener('resize', () => {
+                    camera.aspect = container.clientWidth / container.clientHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(container.clientWidth, container.clientHeight);
+                });
+            }
+
+            if (snakeAnim && snakeAnim.config) createMorphInstance('snake-3d-container', snakeAnim.config);
+            if (chronoAnim && chronoAnim.config) createMorphInstance('chrono-3d-container', chronoAnim.config);
+        }
+
+
+        document.getElementById('search-input').addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            const filteredProducts = (allOrdinaryProducts || []).filter(p =>
+                p.name.toLowerCase().includes(searchTerm) ||
+                (p.description && p.description.toLowerCase().includes(searchTerm))
+            );
+            renderProducts(filteredProducts);
+        });
+
+        function toggleModal(id) { document.getElementById(id).classList.toggle('hidden'); }
+
+        function switchAuthTab(tab) {
+            if (tab === 'login') {
+                document.getElementById('login-form').classList.remove('hidden');
+                document.getElementById('register-form').classList.add('hidden');
+                document.getElementById('tab-login').classList.replace('border-transparent', 'border-white');
+            } else {
+                document.getElementById('register-form').classList.remove('hidden');
+                document.getElementById('login-form').classList.add('hidden');
+                document.getElementById('tab-login').classList.replace('border-white', 'border-transparent');
+            }
+        }
+
+        // --- User & Auth ---
+        // Deze code wordt nu binnen de algemene DOMContentLoaded hierboven geplaatst
+        const user = JSON.parse(localStorage.getItem('lumiere_user'));
+        if (user && user.name) {
+            updateNavForUser(user);
+        }
+        
+        async function registerUser() { 
+            const name = document.getElementById('reg-name').value;
+            const email = document.getElementById('reg-email').value;
+            const password = document.getElementById('reg-password').value;
+            if (!name || !email || !password) {
+                alert('Vul aub naam, e-mail en wachtwoord in.');
+                return;
+            }
+
+            const response = await fetch('/api/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, email, password })
+            });
+
+            if (response.ok) {
+                const user = await response.json();
+                localStorage.setItem('lumiere_user', JSON.stringify(user));
+                updateNavForUser(user);
+                toggleModal('reg-modal');
+            } else {
+                const error = await response.json();
+                alert(`Registratie mislukt: ${error.error}`);
+            }
+        }
+
+        async function loginUser() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            if (!email || !password) {
+                alert('Vul aub je e-mail en wachtwoord in.');
+                return;
+            }
+
+            const response = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+
+            if (response.ok) {
+                const user = await response.json();
+                localStorage.setItem('lumiere_user', JSON.stringify(user));
+                updateNavForUser(user);
+                toggleModal('reg-modal');
+            } else {
+                const error = await response.json();
+                alert(`Login mislukt: ${error.error}`);
+            }
+        }
+
+        async function logoutUser() {
+            localStorage.removeItem('lumiere_user');
+            
+            await fetch('/api/logout', { method: 'POST' });
+
+            // Reset de UI
+            window.location.reload(); // De eenvoudigste manier om de UI te resetten
+        }
+
+        function showForgotPassword() {
+            toggleModal('reg-modal');
+            toggleModal('forgot-password-modal');
+        }
+
+        async function requestPasswordReset() {
+            const email = document.getElementById('forgot-email').value;
+            if (!email) {
+                alert('Voer een e-mailadres in.');
+                return;
+            }
+            const response = await fetch('/api/forgot-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+            });
+            const data = await response.json();
+            alert(data.message); // Toon het bericht van de server
+            toggleModal('forgot-password-modal');
+        }
+
+        function updateNavForUser(user) {
+            const accountBtn = document.getElementById('account-btn');
+            accountBtn.innerHTML = `${user.name} <span class="text-xs uppercase text-blue-400">(${user.status})</span>`;
+            accountBtn.onclick = () => { window.location.href = '/my-account'; };
+
+            document.getElementById('nav-member-link').classList.remove('hidden');
+            if (user.status === 'elite') {
+                document.getElementById('nav-elite-link').classList.remove('hidden');
+            }
+            if (user.status === 'admin') {
+                document.getElementById('nav-admin-link').classList.remove('hidden');
+            }
+        }
+
+        // --- Gesimuleerde Betaalflow ---
+        let currentPurchase = { name: null, amount: null };
+
+        function startPurchase(itemName, amount) {
+            currentPurchase = { name: itemName, amount: amount };
+            document.getElementById('purchase-item-name').innerText = `Product: ${itemName} - €${amount / 100}`;
+            
+            const user = JSON.parse(localStorage.getItem('lumiere_user'));
+            if (user && user.email) {
+                document.getElementById('purchase-email').value = user.email;
+            }
+
+            document.getElementById('purchase-confirm-btn').onclick = processPayment;
+            toggleModal('purchase-modal');
+        }
+
+        async function processPayment() {
+            const userEmail = document.getElementById('purchase-email').value;
+            if (!userEmail) {
+                alert('E-mail is verplicht voor de bevestiging.');
+                return;
+            }
+
+            toggleModal('purchase-modal');
+
+            const response = await fetch('/api/create-payment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ amount: currentPurchase.amount, userEmail: userEmail, productName: currentPurchase.name })
+            });
+            
+            const data = await response.json();
+            if (response.ok) {
+                // Stuur de gebruiker door naar de Mollie betaalpagina
+                window.location.href = data.checkoutUrl;
+            } else {
+                alert(`Fout bij het voorbereiden van de betaling: ${data.error}`);
+            }
+        }
+
+    </script>
+</body>
+</html>

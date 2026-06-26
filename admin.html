@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LUMIÈRE | Admin Panel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;600&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #0a0a0a; color: #fff; }
+        .font-cinzel { font-family: 'Cinzel', serif; }
+        .status-pending { color: #facc15; } /* yellow-400 */
+        .status-succeeded { color: #4ade80; } /* green-400 */
+        .status-failed { color: #f87171; } /* red-400 */
+    </style>
+</head>
+<body class="p-10">
+    <div class="max-w-7xl mx-auto">
+        <div class="flex justify-between items-center mb-10">
+            <h1 class="font-cinzel text-4xl">Admin Panel</h1>
+            <a href="/" class="text-sm uppercase tracking-widest hover:text-blue-400 transition">Terug naar shop</a>
+        </div>
+
+        <div class="bg-black/30 rounded-lg shadow-lg overflow-hidden mb-16">
+            <table class="w-full text-left">
+                <thead class="bg-white/5">
+                    <tr>
+                        <th class="p-4 uppercase text-sm tracking-wider">Payment ID</th>
+                        <th class="p-4 uppercase text-sm tracking-wider">Product</th>
+                        <th class="p-4 uppercase text-sm tracking-wider">Bedrag</th>
+                        <th class="p-4 uppercase text-sm tracking-wider">Klant E-mail</th>
+                        <th class="p-4 uppercase text-sm tracking-wider">Status</th>
+                        <th class="p-4 uppercase text-sm tracking-wider">Acties</th>
+                    </tr>
+                </thead>
+                <tbody id="payments-table-body">
+                    <!-- Rijen worden hier dynamisch ingevoegd -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Product Management -->
+    <div class="max-w-7xl mx-auto">
+        <div class="flex justify-between items-center mb-10">
+            <h2 class="font-cinzel text-3xl">Productbeheer</h2>
+            <button onclick="openProductModal()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded text-sm uppercase tracking-widest">Nieuw Product</button>
+        </div>
+
+        <div class="bg-black/30 rounded-lg shadow-lg overflow-hidden">
+            <table class="w-full text-left">
+                <thead class="bg-white/5">
+                    <tr>
+                        <th class="p-4 uppercase text-sm tracking-wider">ID</th>
+                        <th class="p-4 uppercase text-sm tracking-wider">Naam</th>
+                        <th class="p-4 uppercase text-sm tracking-wider">Prijs</th>
+                        <th class="p-4 uppercase text-sm tracking-wider">Categorie</th>
+                        <th class="p-4 uppercase text-sm tracking-wider">Acties</th>
+                    </tr>
+                </thead>
+                <tbody id="products-table-body">
+                    <!-- Producten worden hier dynamisch ingevoegd -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Product Modal -->
+    <div id="product-modal" class="hidden fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-6">
+        <div class="bg-gray-900 p-8 rounded-lg shadow-2xl w-full max-w-2xl">
+            <h3 id="product-modal-title" class="font-cinzel text-2xl mb-6">Nieuw Product</h3>
+            <form id="product-form" class="space-y-4">
+                <input type="hidden" id="product-id">
+                <div>
+                    <label for="product-name" class="block text-sm mb-1 text-gray-400">Naam</label>
+                    <input type="text" id="product-name" required class="w-full p-3 bg-white/5 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label for="product-description" class="block text-sm mb-1 text-gray-400">Beschrijving (HTML toegestaan)</label>
+                    <textarea id="product-description" rows="4" class="w-full p-3 bg-white/5 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="product-price" class="block text-sm mb-1 text-gray-400">Prijs (in centen)</label>
+                        <input type="number" id="product-price" required class="w-full p-3 bg-white/5 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label for="product-category" class="block text-sm mb-1 text-gray-400">Categorie</label>
+                        <select id="product-category" class="w-full p-3 bg-white/5 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="ordinary">Ordinary</option>
+                            <option value="member">Member</option>
+                            <option value="elite">Elite</option>
+                        </select>
+                    </div>
+                </div>
+                 <div>
+                    <label for="product-animation-type" class="block text-sm mb-1 text-gray-400">Animatie Type</label>
+                    <select id="product-animation-type" class="w-full p-3 bg-white/5 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Geen</option>
+                        <option value="snake">Snake Morph</option>
+                        <option value="chrono">Chrono Morph</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="product-image" class="block text-sm mb-1 text-gray-400">Product Afbeelding</label>
+                    <input type="file" id="product-image" name="image" class="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-500">
+                    <input type="hidden" id="existing-image-url">
+                </div>
+                <div class="flex justify-end gap-4 pt-4">
+                    <button type="button" onclick="closeProductModal()" class="py-2 px-6 border border-gray-600 rounded hover:bg-gray-700 transition">Annuleren</button>
+                    <button type="submit" class="py-2 px-6 bg-blue-600 rounded hover:bg-blue-500 transition">Opslaan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchPayments();
+            fetchProducts();
+        });
+
+        async function fetchPayments() {
+            const response = await fetch('/api/admin/payments');
+            if (!response.ok) {
+                alert('Kon betalingen niet laden. Ben je ingelogd als admin?');
+                return;
+            }
+            const payments = await response.json();
+            const tbody = document.getElementById('payments-table-body');
+            tbody.innerHTML = ''; // Maak de tabel leeg
+
+            payments.forEach(payment => {
+                const row = document.createElement('tr');
+                row.className = 'border-b border-white/10';
+                row.innerHTML = `
+                    <td class="p-4 font-mono text-xs">${payment.id}</td>
+                    <td class="p-4">${payment.product_name}</td>
+                    <td class="p-4">€${(payment.amount / 100).toFixed(2)}</td>
+                    <td class="p-4">${payment.user_email}</td>
+                    <td class="p-4 font-bold status-${payment.status}">${payment.status}</td>
+                    <td class="p-4">
+                        ${payment.status === 'pending' ? `
+                        <button onclick="updateStatus('${payment.id}', 'succeeded')" class="bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded text-sm">Goedkeuren</button>
+                        <button onclick="updateStatus('${payment.id}', 'failed')" class="bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded text-sm ml-2">Afkeuren</button>
+                        ` : '-'}
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        async function updateStatus(paymentId, newStatus) {
+            if (!confirm(`Weet je zeker dat je de status van ${paymentId} wilt wijzigen naar '${newStatus}'?`)) {
+                return;
+            }
+
+            const response = await fetch('/api/admin/update-payment-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ paymentId, status: newStatus })
+            });
+
+            const data = await response.json();
+            alert(data.message || data.error);
+
+            if (response.ok) {
+                fetchPayments(); // Herlaad de tabel om de wijziging te tonen
+            }
+        }
+
+        // --- Product Management ---
+        let allProducts = [];
+
+        async function fetchProducts() {
+            const response = await fetch('/api/products');
+            allProducts = await response.json();
+            const tbody = document.getElementById('products-table-body');
+            tbody.innerHTML = '';
+
+            allProducts.forEach(product => {
+                const row = document.createElement('tr');
+                row.className = 'border-b border-white/10';
+                row.innerHTML = `
+                    <td class="p-4">${product.id}</td>
+                    <td class="p-4">${product.name}</td>
+                    <td class="p-4">€${(product.price / 100).toFixed(2)}</td>
+                    <td class="p-4">${product.category}</td>
+                    <td class="p-4">
+                        <button onclick="openProductModal(${product.id})" class="bg-gray-600 hover:bg-gray-500 text-white px-3 py-1 rounded text-sm">Bewerken</button>
+                        <button onclick="deleteProduct(${product.id})" class="bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded text-sm ml-2">Verwijderen</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function openProductModal(productId = null) {
+            const form = document.getElementById('product-form');
+            form.reset();
+            const modalTitle = document.getElementById('product-modal-title');
+            
+            if (productId) {
+                modalTitle.innerText = 'Product Bewerken';
+                const product = allProducts.find(p => p.id === productId);
+                document.getElementById('product-id').value = product.id;
+                document.getElementById('product-name').value = product.name;
+                document.getElementById('product-description').value = product.description;
+                document.getElementById('product-price').value = product.price;
+                document.getElementById('product-category').value = product.category;
+                document.getElementById('product-animation-type').value = product.animation_type;
+                document.getElementById('existing-image-url').value = product.image_url || '';
+            } else {
+                modalTitle.innerText = 'Nieuw Product';
+                document.getElementById('product-id').value = '';
+            }
+            document.getElementById('product-modal').classList.remove('hidden');
+        }
+
+        function closeProductModal() {
+            document.getElementById('product-modal').classList.add('hidden');
+        }
+
+        document.getElementById('product-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('product-id').value;
+            const formData = new FormData();
+            formData.append('name', document.getElementById('product-name').value);
+            formData.append('description', document.getElementById('product-description').value);
+            formData.append('price', document.getElementById('product-price').value);
+            formData.append('category', document.getElementById('product-category').value);
+            formData.append('animation_type', document.getElementById('product-animation-type').value);
+            formData.append('existing_image_url', document.getElementById('existing-image-url').value || '');
+
+            const imageFile = document.getElementById('product-image').files[0];
+            if (imageFile) {
+                formData.append('image', imageFile);
+            }
+
+            const method = id ? 'PUT' : 'POST';
+            const url = id ? `/api/admin/products/${id}` : '/api/admin/products';
+
+            const response = await fetch(url, {
+                method: method,
+                body: formData
+            });
+
+            if (response.ok) {
+                alert('Product succesvol opgeslagen!');
+                closeProductModal();
+                fetchProducts();
+            } else {
+                const error = await response.json();
+                alert(`Fout: ${error.error}`);
+            }
+        });
+
+        async function deleteProduct(id) {
+            if (!confirm('Weet je zeker dat je dit product wilt verwijderen?')) return;
+
+            const response = await fetch(`/api/admin/products/${id}`, { method: 'DELETE' });
+            if (response.ok) {
+                fetchProducts();
+            } else {
+                alert('Kon product niet verwijderen.');
+            }
+        }
+    </script>
+</body>
+</html>
